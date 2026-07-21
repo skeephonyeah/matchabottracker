@@ -72,6 +72,9 @@ def load_config(path: str, require_webhook: bool = True) -> dict:
 
     # --test and --dump never send anything, so they don't need a webhook.
     # That matters if you only intend to run the slash-command bot.
+    for problem in notifier.validate_mention(config.get("mention", "")):
+        log.warning("Mention setting: %s", problem)
+
     if require_webhook and not config.get("discord_webhook_url"):
         sys.exit(
             "No Discord webhook configured. Set 'discord_webhook_url' in "
