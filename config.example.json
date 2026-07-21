@@ -1,0 +1,33 @@
+{
+  "_comment": "Fill in EITHER the bot fields (for discord_bot.py) OR the webhook (for bot.py). IDs are numbers, not strings, and must not be quoted.",
+
+  "discord_bot_token": "PASTE_YOUR_BOT_TOKEN_HERE",
+  "discord_channel_id": 0,
+  "discord_guild_id": 0,
+
+  "discord_webhook_url": "",
+
+  "mention": "",
+  "state_file": "state.json",
+  "check_interval_seconds": 300,
+  "jitter_seconds": 30,
+  "announce_startup": true,
+  "report_errors_to_discord": true,
+  "user_agent": "MatchaRestockWatcher/1.0 (personal restock notifier; contact: you@example.com)",
+
+  "stores": {
+    "marukyu": {
+      "enabled": true,
+      "request_delay_seconds": 1.5,
+      "catalog_urls": [
+        "https://www.marukyu-koyamaen.co.jp/english/shop/products/catalog/matcha?viewall=1"
+      ],
+      "watchlist": []
+    },
+    "horii": {
+      "enabled": true,
+      "request_delay_seconds": 1.0,
+      "watchlist": []
+    }
+  }
+}

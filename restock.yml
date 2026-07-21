@@ -1,0 +1,85 @@
+name: Matcha restock check
+
+on:
+  schedule:
+    # Every 5 minutes, offset off the top of the hour. GitHub's scheduler is
+    # busiest at :00, :15 and :30; odd minutes get serviced noticeably faster.
+    - cron: "4,9,14,19,24,29,34,39,44,49,54,59 * * * *"
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: "Print current stock without sending any Discord alerts"
+        type: boolean
+        default: false
+
+# Never let two checks overlap: a second run starting mid-scrape would double
+# the request load on both shops and race on the state file.
+concurrency:
+  group: matcha-restock
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15   # hard stop so a hung request can't burn minutes
+    permissions:
+      contents: read      # this job never writes to the repo
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Create config if none is committed
+        run: |
+          if [ ! -f config.json ]; then
+            cp config.example.json config.json
+            echo "No config.json in repo - falling back to config.example.json defaults."
+          fi
+
+      - name: Refuse to run if a webhook URL was committed
+        run: |
+          if grep -qE 'discord\.com/api/webhooks/[0-9]' config.json; then
+            echo "::error::config.json contains a real Discord webhook URL."
+            echo "::error::Delete it, rotate that webhook in Discord, and use the DISCORD_WEBHOOK_URL secret instead."
+            exit 1
+          fi
+          echo "OK - no webhook URL committed."
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Stock state must survive between runs - it is the entire basis for
+      # detecting a change. Cache keys are immutable, so write a fresh key each
+      # run and restore the most recent one by prefix.
+      - name: Restore previous stock state
+        uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: matcha-state-${{ github.run_id }}
+          restore-keys: |
+            matcha-state-
+
+      - name: Check for restocks
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ "${{ inputs.test_mode }}" = "true" ]; then
+            python bot.py --test
+          else
+            python bot.py --once
+          fi
+
+      # always() so state is still saved if the run failed partway through.
+      # A lost cache costs one silent re-seed, never a burst of false alerts.
+      - name: Save stock state
+        if: always() && inputs.test_mode != true
+        uses: actions/cache/save@v4
+        with:
+          path: state.json
+          key: matcha-state-${{ github.run_id }}

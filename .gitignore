@@ -1,0 +1,14 @@
+# Runtime state - restored from the Actions cache, not tracked in git
+state.json
+
+# Local config may contain your webhook URL. Never commit it.
+config.local.json
+
+# Debug dumps from `python bot.py --dump`
+dumps/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

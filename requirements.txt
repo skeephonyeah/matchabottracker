@@ -1,0 +1,6 @@
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Only needed for discord_bot.py (the slash-command bot).
+# bot.py (webhook version) does not need this.
+discord.py>=2.3.0
