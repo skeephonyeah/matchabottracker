@@ -4,7 +4,10 @@ on:
   schedule:
     # Every 5 minutes, offset off the top of the hour. GitHub's scheduler is
     # busiest at :00, :15 and :30; odd minutes get serviced noticeably faster.
-    - cron: "4,9,14,19,24,29,34,39,44,49,54,59 * * * *"
+    # 07:00-12:59 UTC, Mon-Fri. That covers 00:00-05:00 Pacific in BOTH
+    # PST and PDT; schedule_window.py then trims the daylight-saving edge
+    # exactly, so no run happens outside the real window.
+    - cron: "4,9,14,19,24,29,34,39,44,49,54,59 7-12 * * 1-5"
   workflow_dispatch:
     inputs:
       test_mode:
@@ -71,6 +74,9 @@ jobs:
         run: |
           if [ "${{ inputs.test_mode }}" = "true" ]; then
             python bot.py --test
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # You pressed the button, so run regardless of the time window.
+            python bot.py --once --ignore-schedule
           else
             python bot.py --once
           fi

@@ -23,6 +23,7 @@ import time
 from typing import Callable
 
 import notifier
+import schedule_window
 from state import StockState
 from stores import horii, marukyu
 from stores.common import Item, StoreError, make_session
@@ -195,6 +196,11 @@ def main() -> None:
     parser.add_argument("--once", action="store_true", help="run a single cycle and exit")
     parser.add_argument("--test", action="store_true", help="print current stock, send nothing")
     parser.add_argument("--dump", metavar="STORE", help="save raw response for debugging")
+    parser.add_argument(
+        "--ignore-schedule",
+        action="store_true",
+        help="run even if outside the configured run window",
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
@@ -231,7 +237,13 @@ def main() -> None:
     jitter = int(config.get("jitter_seconds", 30))
 
     if args.once:
-        run_cycle(config, state, session)
+        allowed, reason = schedule_window.check_window(config)
+        if allowed or args.ignore_schedule:
+            if not allowed:
+                log.info("Schedule says %s - running anyway (--ignore-schedule)", reason)
+            run_cycle(config, state, session)
+        else:
+            log.info("Skipping this run: %s", reason)
         return
 
     log.info("Watching every ~%ds (± %ds). Ctrl-C to stop.", interval, jitter)
@@ -240,7 +252,11 @@ def main() -> None:
     while True:
         started = time.time()
         try:
-            run_cycle(config, state, session)
+            allowed, reason = schedule_window.check_window(config)
+            if allowed or args.ignore_schedule:
+                run_cycle(config, state, session)
+            else:
+                log.info("Skipping this cycle: %s", reason)
             consecutive_failures = 0
         except KeyboardInterrupt:
             log.info("Stopped by user.")
