@@ -1,9 +1,5 @@
 # Matcha Restock Watcher
 
-Watches **Marukyu Koyamaen** and **Horii Shichimeien** and posts a Discord alert
-the moment something goes from sold out to in stock. Each alert names the store,
-the exact product and size, and links straight to that item's page.
-
 ## Deploying
 
 Follow **DEPLOY_GITHUB.md** — complete step-by-step GitHub deployment, from
